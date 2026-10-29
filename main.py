@@ -3,6 +3,7 @@ from modelo.victima import Victima
 from problema.rescate import ProblemaRescate
 from busqueda.bfs import bfs
 from busqueda.ucs import ucs
+from busqueda.iddfs import iddfs
 from busqueda.astar import astar
 
 MAPA = """##########
@@ -38,8 +39,8 @@ def main():
         if not mapa.es_transitable(v.fila, v.columna):
             print(f"  AVISO: {v.id} está en ({v.fila},{v.columna}), que es pared")
 
-    # 2) Ejecución de los algoritmos
-    algoritmos = (bfs, ucs, astar)
+    # 2) Ejecución de los algoritmos (BFS primero: es la referencia; A* al final)
+    algoritmos = (bfs, ucs, iddfs, astar)
     resultados = [algoritmo(problema) for algoritmo in algoritmos]
 
     # 3) Tabla comparativa
@@ -72,8 +73,8 @@ def main():
         ok_meta = problema.es_objetivo(estado)
         ok_resc = r.rescatadas == referencia
         print(f"  {r.algoritmo:<5} ruta reproducible={ok_ruta}  "
-              f"estado final es objetivo={ok_meta}  "
-              f"mismas rescatadas que BFS={ok_resc}")
+                f"estado final es objetivo={ok_meta}  "
+                f"mismas rescatadas que BFS={ok_resc}")
 
 
 if __name__ == "__main__":
