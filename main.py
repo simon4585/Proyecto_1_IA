@@ -3,6 +3,7 @@ from modelo.victima import Victima
 from problema.rescate import ProblemaRescate
 from busqueda.bfs import bfs
 from busqueda.ucs import ucs
+from busqueda.astar import astar
 
 MAPA = """##########
 #S...#...#
@@ -37,28 +38,42 @@ def main():
         if not mapa.es_transitable(v.fila, v.columna):
             print(f"  AVISO: {v.id} está en ({v.fila},{v.columna}), que es pared")
 
-    # 2) Ejecución de BFS
-    print("\n== Comparación ==")
-    for algoritmo in (bfs, ucs):
-        r = algoritmo(problema)
-        print(f"  {r.algoritmo:5s} rescatadas={r.rescatadas} ticks={r.ticks} "
-                f"nodos={r.nodos_expandidos} tiempo={r.tiempo:.4f}s "
-                f"acciones={''.join(r.acciones)}")
+    # 2) Ejecución de los algoritmos
+    algoritmos = (bfs, ucs, astar)
+    resultados = [algoritmo(problema) for algoritmo in algoritmos]
 
-    # 3) Reproducción de la ruta tick a tick
-    print("\n== Ruta paso a paso ==")
-    for estado in r.camino:
+    # 3) Tabla comparativa
+    print("\n== Comparación de algoritmos ==")
+    print(f"  {'Algoritmo':<10}{'Nodos':>8}{'Tiempo':>10}{'Rescatadas':>12}"
+          f"{'Fallecidas':>12}{'Ticks':>7}")
+    for r in resultados:
+        fallecidas = len(VICTIMAS) - r.rescatadas
+        print(f"  {r.algoritmo:<10}{r.nodos_expandidos:>8}{r.tiempo:>9.4f}s"
+              f"{r.rescatadas:>12}{fallecidas:>12}{r.ticks:>7}")
+
+    print("\n== Rutas encontradas ==")
+    for r in resultados:
+        print(f"  {r.algoritmo:<5}: {''.join(r.acciones)}")
+
+    # 4) Ruta paso a paso de A*
+    a = resultados[-1]
+    print(f"\n== Ruta paso a paso ({a.algoritmo}) ==")
+    for estado in a.camino:
         mostrar(estado)
 
-    # 4) Comprobaciones de coherencia
+    # 5) Comprobaciones de coherencia para cada algoritmo
     print("\n== Comprobaciones ==")
-    estado = problema.estado_inicial()
-    for accion in r.acciones:
-        estado = problema.resultado(estado, accion)
-    print("  Repetir las acciones llega al estado final:", estado == r.camino[-1])
-    print("  El estado final es objetivo               :", problema.es_objetivo(estado))
-    print("  Largo del camino = acciones + 1           :",
-            len(r.camino) == len(r.acciones) + 1)
+    referencia = resultados[0].rescatadas
+    for r in resultados:
+        estado = problema.estado_inicial()
+        for accion in r.acciones:
+            estado = problema.resultado(estado, accion)
+        ok_ruta = estado == r.camino[-1]
+        ok_meta = problema.es_objetivo(estado)
+        ok_resc = r.rescatadas == referencia
+        print(f"  {r.algoritmo:<5} ruta reproducible={ok_ruta}  "
+              f"estado final es objetivo={ok_meta}  "
+              f"mismas rescatadas que BFS={ok_resc}")
 
 
 if __name__ == "__main__":
