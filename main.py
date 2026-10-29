@@ -1,6 +1,7 @@
 from modelo.mapa import Mapa
 from modelo.victima import Victima
 from problema.rescate import ProblemaRescate
+from busqueda.bfs import bfs
 
 MAPA = """##########
 #S...#...#
@@ -21,7 +22,7 @@ VICTIMAS = [
 
 def mostrar(estado):
     fila, col, vivas, rescatadas, tick = estado
-    print(f"  tick={tick} pos=({fila},{col}) "
+    print(f"  tick={tick:2d} pos=({fila},{col}) "
           f"vivas={sorted(vivas)} rescatadas={sorted(rescatadas)}")
 
 
@@ -29,36 +30,36 @@ def main():
     mapa = Mapa.desde_lineas(MAPA)
     problema = ProblemaRescate(mapa, VICTIMAS)
 
-    # 1) Validación: ¿alguna víctima cae sobre una pared?
+    # 1) Validación de datos de entrada
     print("== Validación de víctimas ==")
     for v in VICTIMAS:
         if not mapa.es_transitable(v.fila, v.columna):
             print(f"  AVISO: {v.id} está en ({v.fila},{v.columna}), que es pared")
 
-    # 2) Estado inicial y sucesores
+    # 2) Ejecución de BFS
+    print("\n== Resultado de BFS ==")
+    r = bfs(problema)
+    print("  Rescatadas      :", r.rescatadas, "de", len(VICTIMAS))
+    print("  Fallecidas      :", len(VICTIMAS) - r.rescatadas)
+    print("  Ticks totales   :", r.ticks)
+    print("  Nodos expandidos:", r.nodos_expandidos)
+    print(f"  Tiempo          : {r.tiempo:.4f} s")
+    print("  Acciones        :", "".join(r.acciones))
+
+    # 3) Reproducción de la ruta tick a tick
+    print("\n== Ruta paso a paso ==")
+    for estado in r.camino:
+        mostrar(estado)
+
+    # 4) Comprobaciones de coherencia
+    print("\n== Comprobaciones ==")
     estado = problema.estado_inicial()
-    print("\n== Estado inicial ==")
-    mostrar(estado)
-    print("  t_max:", problema.t_max)
-    print("  ¿es objetivo?:", problema.es_objetivo(estado))
-    print("  acciones posibles:", [a for a, _ in problema.acciones(estado)])
-
-    # 3) Simulación de una ruta manual
-    ruta = ["E", "E", "E", "S", "S", "S", "E"]
-    print("\n== Ruta manual:", ruta, "==")
-    muertes = 0
-    for accion in ruta:
-        siguiente = problema.resultado(estado, accion)
-        costo = problema.costo_paso(estado, siguiente)
-        muertes += costo
-        print(f"{accion}: costo del paso={costo}")
-        mostrar(siguiente)
-        estado = siguiente
-
-    print("\n== Resumen ==")
-    print("  rescatadas:", sorted(estado[3]))
-    print("  muertes acumuladas:", muertes)
-    print("  ¿es objetivo?:", problema.es_objetivo(estado))
+    for accion in r.acciones:
+        estado = problema.resultado(estado, accion)
+    print("  Repetir las acciones llega al estado final:", estado == r.camino[-1])
+    print("  El estado final es objetivo               :", problema.es_objetivo(estado))
+    print("  Largo del camino = acciones + 1           :",
+          len(r.camino) == len(r.acciones) + 1)
 
 
 if __name__ == "__main__":
