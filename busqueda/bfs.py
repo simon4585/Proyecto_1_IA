@@ -2,20 +2,7 @@ import time
 
 from busqueda.nodo import Nodo
 from busqueda.resultado import ResultadoBusqueda
-
-
-def _es_mejor(estado, mejor):
-    """Compara un estado objetivo con el mejor encontrado hasta ahora.
-
-    Gana el que tenga más víctimas rescatadas; en empate, el que use menos ticks.
-    Si hay empate total, se conserva el primero encontrado (el más a la izquierda).
-    """
-    if mejor is None:
-        return True
-    rescatadas, ticks = len(estado[3]), estado[4]
-    mejor_rescatadas, mejor_ticks = len(mejor.estado[3]), mejor.estado[4]
-    return (rescatadas, -ticks) > (mejor_rescatadas, -mejor_ticks)
-
+from busqueda.utilidades import es_mejor
 
 def bfs(problema):
     """Búsqueda en amplitud sobre todo el espacio de estados (acotado por t_max).
@@ -37,7 +24,7 @@ def bfs(problema):
         indice += 1
 
         if problema.es_objetivo(nodo.estado):
-            if _es_mejor(nodo.estado, mejor):
+            if es_mejor(nodo.estado, mejor):
                 mejor = nodo
             continue                # un objetivo no se expande más
 

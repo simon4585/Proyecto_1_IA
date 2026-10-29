@@ -2,6 +2,7 @@ from modelo.mapa import Mapa
 from modelo.victima import Victima
 from problema.rescate import ProblemaRescate
 from busqueda.bfs import bfs
+from busqueda.ucs import ucs
 
 MAPA = """##########
 #S...#...#
@@ -37,14 +38,12 @@ def main():
             print(f"  AVISO: {v.id} está en ({v.fila},{v.columna}), que es pared")
 
     # 2) Ejecución de BFS
-    print("\n== Resultado de BFS ==")
-    r = bfs(problema)
-    print("  Rescatadas      :", r.rescatadas, "de", len(VICTIMAS))
-    print("  Fallecidas      :", len(VICTIMAS) - r.rescatadas)
-    print("  Ticks totales   :", r.ticks)
-    print("  Nodos expandidos:", r.nodos_expandidos)
-    print(f"  Tiempo          : {r.tiempo:.4f} s")
-    print("  Acciones        :", "".join(r.acciones))
+    print("\n== Comparación ==")
+    for algoritmo in (bfs, ucs):
+        r = algoritmo(problema)
+        print(f"  {r.algoritmo:5s} rescatadas={r.rescatadas} ticks={r.ticks} "
+                f"nodos={r.nodos_expandidos} tiempo={r.tiempo:.4f}s "
+                f"acciones={''.join(r.acciones)}")
 
     # 3) Reproducción de la ruta tick a tick
     print("\n== Ruta paso a paso ==")
@@ -59,7 +58,7 @@ def main():
     print("  Repetir las acciones llega al estado final:", estado == r.camino[-1])
     print("  El estado final es objetivo               :", problema.es_objetivo(estado))
     print("  Largo del camino = acciones + 1           :",
-          len(r.camino) == len(r.acciones) + 1)
+            len(r.camino) == len(r.acciones) + 1)
 
 
 if __name__ == "__main__":
