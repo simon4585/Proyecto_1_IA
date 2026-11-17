@@ -17,39 +17,33 @@ FUENTE = "Segoe UI"
 # Tamaño de cada celda del mapa en píxeles
 TAMANO_CELDA = 60
 
-# Colores de la interfaz
-COLOR_FONDO = "#F4F7FD"                      # fondo de las pantallas
-COLOR_TARJETA = "#EEF3FC"                    # fondo de cada tarjeta
-COLOR_TITULO_TARJETA = "#DCE6FA"             # franja con el título de cada tarjeta
-COLOR_BORDE = "#C5D3F0"                      # borde de las tarjetas
-COLOR_TEXTO = "#14284B"                      # letras (azul muy oscuro)
+# Colores de la interfaz: todo blanco; solo el título de arriba y el botón principal son azules
+COLOR_FONDO = "#FFFFFF"                      # fondo de la pantalla
+COLOR_TARJETA = "#FFFFFF"                    # fondo de cada tarjeta
+COLOR_TITULO_TARJETA = "#FFFFFF"             # franja con el título de cada tarjeta
+COLOR_BORDE = "#D9DDE3"                      # borde gris claro que separa las tarjetas
+COLOR_TEXTO = "#1F2937"                      # letras (gris muy oscuro)
 COLOR_TEXTO_CLARO = "#FFFFFF"
-COLOR_ENCABEZADO = "#1B3A6E"                 # barra superior
-COLOR_TITULO_BIENVENIDA = "#173C8C"
-COLOR_BOTON_PRINCIPAL = "#0F3A82"            # "Iniciar" e "Iniciar Rescate"
+COLOR_ENCABEZADO = "#1B3A6E"                 # barra superior (azul)
+COLOR_BOTON_PRINCIPAL = "#0F3A82"            # "Iniciar Rescate" (azul)
 COLOR_BOTON_PRINCIPAL_PRESIONADO = "#0A2B63"
-COLOR_BOTON_SECUNDARIO = "#DCE6FA"           # botones "Examinar"
-COLOR_BOTON_SECUNDARIO_PRESIONADO = "#C8D8F6"
+COLOR_BOTON_SECUNDARIO = "#FFFFFF"           # botones "Examinar" (blancos con borde)
+COLOR_BOTON_SECUNDARIO_PRESIONADO = "#F3F4F6"
 COLOR_LECTURA_OK = "#1E7B34"
 COLOR_LECTURA_ERROR = "#C62828"
 
 # Colores del mapa
 COLOR_PARED = "#2B3445"
-COLOR_LIBRE = "#F7F9FC"
-COLOR_LINEA_CELDA = "#D5DDEB"
-COLOR_AGENTE = "#2F6FED"
+COLOR_LIBRE = "#FFFFFF"
+COLOR_LINEA_CELDA = "#E5E7EB"
+COLOR_AGENTE = "#111827"
 COLOR_VICTIMA_VIVA = "#F5B94A"
 COLOR_VICTIMA_RESCATADA = "#8FD35F"
 COLOR_VICTIMA_MUERTA = "#F07C73"
 
 
 class VentanaPrincipal:
-    """Ventana de la aplicación.
-
-    Tiene dos pantallas dentro de la misma ventana:
-      - la pantalla de bienvenida (con el botón "Iniciar")
-      - la pantalla principal (archivos, configuración, mapa animado y resultados)
-    """
+    """Ventana de la aplicación: archivos, configuración, mapa animado y resultados."""
 
     def __init__(self, ventana):
         self.ventana = ventana
@@ -69,10 +63,9 @@ class VentanaPrincipal:
         self.indice_tick = 0          # posición actual dentro de camino_animado
         self.identificador_animacion = None
 
-        # Se construyen las dos pantallas, pero solo se muestra la de bienvenida
-        self.construir_pantalla_bienvenida()
+        # La aplicación abre directamente en la pantalla principal
         self.construir_pantalla_principal()
-        self.pantalla_bienvenida.pack(fill="both", expand=True)
+        self.pantalla_principal.pack(fill="both", expand=True)
 
     def maximizar_ventana(self):
         """Abre la ventana ocupando toda la pantalla (con sus botones de ventana)."""
@@ -88,7 +81,7 @@ class VentanaPrincipal:
     # Botones y tarjetas (se reutilizan en varias partes)
     # ------------------------------------------------------------------
     def crear_boton_principal(self, padre, texto, comando, tamano_letra):
-        """Botón azul oscuro con letra blanca (acciones importantes)."""
+        """Botón azul con letra blanca (acción importante)."""
         return tk.Button(padre, text=texto, command=comando,
                          bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_CLARO,
                          activebackground=COLOR_BOTON_PRINCIPAL_PRESIONADO,
@@ -97,7 +90,7 @@ class VentanaPrincipal:
                          cursor="hand2")
 
     def crear_boton_secundario(self, padre, texto, comando):
-        """Botón azul claro con borde y letra oscura (botones 'Examinar')."""
+        """Botón blanco con borde gris y letra oscura (botones 'Examinar')."""
         return tk.Button(padre, text=texto, command=comando,
                          bg=COLOR_BOTON_SECUNDARIO, fg=COLOR_TEXTO,
                          activebackground=COLOR_BOTON_SECUNDARIO_PRESIONADO,
@@ -126,43 +119,6 @@ class VentanaPrincipal:
         cuerpo = tk.Frame(tarjeta, bg=COLOR_TARJETA)
         cuerpo.pack(fill="both", expand=expandir, padx=10, pady=10)
         return etiqueta_titulo, cuerpo
-
-    # ------------------------------------------------------------------
-    # Pantalla de bienvenida
-    # ------------------------------------------------------------------
-    def construir_pantalla_bienvenida(self):
-        """Pantalla inicial: título, lema y botón 'Iniciar'."""
-        self.pantalla_bienvenida = tk.Frame(self.ventana, bg=COLOR_FONDO)
-
-        # Contenido centrado en la pantalla
-        centro = tk.Frame(self.pantalla_bienvenida, bg=COLOR_FONDO)
-        centro.place(relx=0.5, rely=0.5, anchor="center")
-
-        titulo = tk.Label(centro, text="Agente de Rescate",
-                          bg=COLOR_FONDO, fg=COLOR_TITULO_BIENVENIDA,
-                          font=(FUENTE, 60, "bold"))
-        titulo.pack(pady=(0, 10))
-
-        # Lema entre dos líneas horizontales
-        fila_lema = tk.Frame(centro, bg=COLOR_FONDO)
-        fila_lema.pack(pady=(0, 50))
-        tk.Frame(fila_lema, bg=COLOR_TITULO_BIENVENIDA, width=120,
-                 height=2).pack(side="left", padx=15)
-        tk.Label(fila_lema, text="Busca  •  Rescata  •  Salva", bg=COLOR_FONDO,
-                 fg=COLOR_TITULO_BIENVENIDA,
-                 font=(FUENTE, 20, "italic")).pack(side="left")
-        tk.Frame(fila_lema, bg=COLOR_TITULO_BIENVENIDA, width=120,
-                 height=2).pack(side="left", padx=15)
-
-        boton_iniciar = self.crear_boton_principal(centro, "▶  Iniciar",
-                                                   self.mostrar_pantalla_principal, 22)
-        boton_iniciar.config(padx=70, pady=14)
-        boton_iniciar.pack()
-
-    def mostrar_pantalla_principal(self):
-        """Oculta la bienvenida y muestra la pantalla principal."""
-        self.pantalla_bienvenida.pack_forget()
-        self.pantalla_principal.pack(fill="both", expand=True)
 
     # ------------------------------------------------------------------
     # Pantalla principal
@@ -445,7 +401,7 @@ class VentanaPrincipal:
                                     text=texto, font=(FUENTE, 11, "bold"),
                                     fill=COLOR_TEXTO)
 
-        # El agente se dibuja como un círculo azul en la esquina de su celda
+        # El agente se dibuja como un círculo oscuro en la esquina de su celda
         x_agente = columna_agente * TAMANO_CELDA
         y_agente = fila_agente * TAMANO_CELDA
         self.lienzo.create_oval(x_agente + 2, y_agente + 2,
