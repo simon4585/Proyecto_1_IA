@@ -1,28 +1,24 @@
 class Mapa:
-    """Cuadrícula del entorno. Solo '#' es pared; cualquier otro símbolo es transitable."""
+    """Cuadrícula del entorno. Solo '#' es pared; cualquier otro símbolo se puede pisar."""
 
-    def __init__(self, cuadricula, inicio):
-        self.cuadricula = cuadricula          # lista de strings, una por fila
-        self.inicio = inicio                  # (fila, columna) de 'S'
+    def __init__(self, cuadricula):
+        self.cuadricula = cuadricula          # lista de textos, uno por fila
         self.filas = len(cuadricula)
         self.columnas = len(cuadricula[0])
+        self.inicio = self.buscar_inicio()    # (fila, columna) donde está la 'S'
 
-    @classmethod
-    def desde_lineas(cls, lineas):
-        """Construye el mapa desde las líneas de mapa.txt y localiza 'S'."""
-        cuadricula = [l.rstrip("\n") for l in lineas if l.strip()]
-        if len({len(f) for f in cuadricula}) != 1:
-            raise ValueError("Todas las filas del mapa deben tener el mismo largo")
-        inicio = None
-        for f, fila in enumerate(cuadricula):
-            if "S" in fila:
-                inicio = (f, fila.index("S"))
-        if inicio is None:
-            raise ValueError("El mapa no tiene posición inicial 'S'")
-        return cls(cuadricula, inicio)
+    def buscar_inicio(self):
+        """Recorre el mapa hasta encontrar la letra 'S'."""
+        for fila in range(self.filas):
+            for columna in range(self.columnas):
+                if self.cuadricula[fila][columna] == "S":
+                    return (fila, columna)
+        return None
 
     def es_transitable(self, fila, columna):
-        """False si está fuera del mapa o es pared."""
-        return (0 <= fila < self.filas
-                and 0 <= columna < self.columnas
-                and self.cuadricula[fila][columna] != "#")
+        """False si la posición está fuera del mapa o es una pared."""
+        if fila < 0 or fila >= self.filas:
+            return False
+        if columna < 0 or columna >= self.columnas:
+            return False
+        return self.cuadricula[fila][columna] != "#"

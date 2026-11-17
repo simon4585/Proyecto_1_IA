@@ -1,6 +1,8 @@
 class Victima:
-    def __init__(self, id, fila, columna, ticks):
-        self.id = id
+    """Una víctima: dónde está y cuántos ticks puede sobrevivir."""
+
+    def __init__(self, identificador, fila, columna, ticks_supervivencia):
+        self.identificador = identificador              # por ejemplo "V1"
         self.fila = fila
         self.columna = columna
-        self.ticks = ticks
+        self.ticks_supervivencia = ticks_supervivencia  # tick máximo en que aún se puede rescatar

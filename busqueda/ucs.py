@@ -2,51 +2,51 @@ import time
 
 from busqueda.nodo import Nodo
 from busqueda.resultado import ResultadoBusqueda
-from busqueda.utilidades import es_mejor
+from busqueda.utilidades import es_mejor_solucion
 
 
 def ucs(problema):
     """Búsqueda de costo uniforme: expande primero el nodo con menos muertes acumuladas.
 
-    La frontera es una lista de tuplas:
-        (costo g, tick, contador, nodo)
-    En cada paso se extrae la tupla más pequeña con min(). El contador es único,
-    así que nunca se llega a comparar dos Nodo, y conserva el orden de generación
-    (izquierda a derecha) cuando hay empates.
+    La frontera es una lista de tuplas (costo, tick, contador, nodo). En cada paso
+    se saca la tupla más pequeña con min(): primero menor costo, luego menor tick,
+    y por último el orden de generación. El contador es único, así que nunca se
+    llega a comparar dos Nodo entre sí.
     """
-    inicio = time.perf_counter()
-    total = len(problema.victimas)
+    tiempo_inicio = time.perf_counter()
+    total_victimas = len(problema.victimas)
 
     raiz = Nodo(problema.estado_inicial())
     contador = 0
     frontera = [(0, 0, contador, raiz)]
     visitados = {raiz.estado}
-    expandidos = 0
-    mejor = None
-    muertes_mejor = total + 1          # muertes del mejor objetivo encontrado
+    nodos_expandidos = 0
+    mejor_nodo = None
+    muertes_del_mejor = total_victimas + 1      # muertes del mejor objetivo encontrado
 
-    while frontera:
-        elegido = min(frontera)        # tupla de menor costo (luego menor tick, luego orden)
+    while len(frontera) > 0:
+        elegido = min(frontera)
         frontera.remove(elegido)
-        g, _, _, nodo = elegido
+        costo_elegido, tick_elegido, orden, nodo = elegido
 
         # Ningún nodo restante puede mejorar al mejor objetivo ya encontrado
-        if g > muertes_mejor:
+        if costo_elegido > muertes_del_mejor:
             break
 
         if problema.es_objetivo(nodo.estado):
-            if es_mejor(nodo.estado, mejor):
-                mejor = nodo
-                muertes_mejor = total - len(nodo.estado[3])   # costo real del objetivo
+            if es_mejor_solucion(nodo.estado, mejor_nodo):
+                mejor_nodo = nodo
+                muertes_del_mejor = total_victimas - len(nodo.estado.rescatadas)
             continue                    # un objetivo no se expande más
 
-        expandidos += 1
+        nodos_expandidos += 1
         for accion, sucesor in problema.acciones(nodo.estado):
             if sucesor not in visitados:
                 visitados.add(sucesor)
                 costo = nodo.costo + problema.costo_paso(nodo.estado, sucesor)
                 contador += 1
                 hijo = Nodo(sucesor, nodo, accion, costo)
-                frontera.append((costo, sucesor[4], contador, hijo))
+                frontera.append((costo, sucesor.tick, contador, hijo))
 
-    return ResultadoBusqueda("UCS", mejor, expandidos, time.perf_counter() - inicio)
+    tiempo_total = time.perf_counter() - tiempo_inicio
+    return ResultadoBusqueda("UCS", mejor_nodo, nodos_expandidos, tiempo_total)

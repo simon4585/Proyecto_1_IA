@@ -2,53 +2,69 @@ import time
 
 from busqueda.nodo import Nodo
 from busqueda.resultado import ResultadoBusqueda
-from busqueda.utilidades import es_mejor
+from busqueda.utilidades import es_mejor_solucion
 
 
-def _dfs_limitada(problema, nodo, limite, visitados, contexto):
-    """Búsqueda en profundidad con límite. Devuelve True si hubo nodos cortados por el límite.
+class BusquedaProfundidadLimitada:
+    """Una pasada de DFS que no baja más allá de un límite de profundidad.
 
     La profundidad de un nodo es su tick (cada movimiento suma 1 tick).
-    contexto = {"expandidos": int, "mejor": Nodo}, compartido entre llamadas recursivas.
+    Guarda el mejor objetivo y la cantidad de nodos expandidos, y se reutiliza
+    en todas las pasadas de IDDFS.
     """
-    if problema.es_objetivo(nodo.estado):
-        if es_mejor(nodo.estado, contexto["mejor"]):
-            contexto["mejor"] = nodo
-        return False                       # un objetivo no se expande más
 
-    if nodo.estado[4] >= limite:
-        return True                        # se llegó al límite sin ser objetivo: queda por explorar
+    def __init__(self, problema):
+        self.problema = problema
+        self.nodos_expandidos = 0
+        self.mejor_nodo = None
+        self.limite = 0
+        self.visitados = set()
 
-    contexto["expandidos"] += 1
-    cortado = False
-    for accion, sucesor in problema.acciones(nodo.estado):
-        if sucesor not in visitados:
-            visitados.add(sucesor)
-            costo = nodo.costo + problema.costo_paso(nodo.estado, sucesor)
-            hijo = Nodo(sucesor, nodo, accion, costo)
-            if _dfs_limitada(problema, hijo, limite, visitados, contexto):
-                cortado = True
-    return cortado
+    def explorar_con_limite(self, limite):
+        """Hace una pasada completa. Devuelve True si el límite cortó alguna rama."""
+        self.limite = limite
+        estado_inicial = self.problema.estado_inicial()
+        self.visitados = {estado_inicial}       # se reinicia en cada pasada
+        return self.explorar(Nodo(estado_inicial))
+
+    def explorar(self, nodo):
+        """DFS recursiva. Devuelve True si alguna rama quedó cortada por el límite."""
+        if self.problema.es_objetivo(nodo.estado):
+            if es_mejor_solucion(nodo.estado, self.mejor_nodo):
+                self.mejor_nodo = nodo
+            return False                        # un objetivo no se expande más
+
+        if nodo.estado.tick >= self.limite:
+            return True                         # se llegó al límite: queda por explorar
+
+        self.nodos_expandidos += 1
+        hubo_corte = False
+        for accion, sucesor in self.problema.acciones(nodo.estado):
+            if sucesor not in self.visitados:
+                self.visitados.add(sucesor)
+                costo = nodo.costo + self.problema.costo_paso(nodo.estado, sucesor)
+                hijo = Nodo(sucesor, nodo, accion, costo)
+                if self.explorar(hijo):
+                    hubo_corte = True
+        return hubo_corte
 
 
 def iddfs(problema):
-    """Búsqueda en profundidad iterativa (Iterative Deepening DFS).
+    """Búsqueda en profundidad iterativa.
 
-    Repite la DFS limitada con límite 0, 1, 2, ... hasta que una iteración
-    recorra todo el espacio sin cortes. Conserva el mejor objetivo encontrado.
+    Repite la DFS con límite 0, 1, 2, ... hasta que una pasada recorra todo el
+    espacio sin cortes. Conserva el mejor objetivo encontrado en todas las pasadas.
     """
-    inicio = time.perf_counter()
-    contexto = {"expandidos": 0, "mejor": None}
-    estado_inicial = problema.estado_inicial()
+    tiempo_inicio = time.perf_counter()
+    busqueda = BusquedaProfundidadLimitada(problema)
 
     limite = 0
     while True:
-        visitados = {estado_inicial}       # se reinicia en cada iteración
-        raiz = Nodo(estado_inicial)
-        hubo_cortes = _dfs_limitada(problema, raiz, limite, visitados, contexto)
-        if not hubo_cortes:
-            break                          # se exploró todo el espacio
+        hubo_corte = busqueda.explorar_con_limite(limite)
+        if not hubo_corte:
+            break                               # se exploró todo el espacio
         limite += 1
 
-    return ResultadoBusqueda("IDDFS", contexto["mejor"], contexto["expandidos"],
-                                time.perf_counter() - inicio)
+    tiempo_total = time.perf_counter() - tiempo_inicio
+    return ResultadoBusqueda("IDDFS", busqueda.mejor_nodo,
+                             busqueda.nodos_expandidos, tiempo_total)

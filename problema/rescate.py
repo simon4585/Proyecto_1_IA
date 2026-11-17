@@ -1,70 +1,76 @@
-# Dirección -> (delta_fila, delta_columna)
+from problema.estado import Estado
+
+# Dirección -> (cambio en la fila, cambio en la columna)
 DIRECCIONES = {"N": (-1, 0), "S": (1, 0), "E": (0, 1), "O": (0, -1)}
 
 
 class ProblemaRescate:
-    """Define el problema de búsqueda.
+    """Define el problema de búsqueda: estado inicial, acciones, resultado y meta.
 
-    Un estado es la tupla: (fila, columna, vivas, rescatadas, tick)
-      vivas, rescatadas: frozenset de ids de víctimas
+    La búsqueda termina sola porque el tick forma parte del estado: pasado el
+    mayor tiempo de supervivencia todas las víctimas están muertas y el estado
+    es objetivo.
     """
 
     def __init__(self, mapa, victimas):
         self.mapa = mapa
-        self.victimas = {v.id: v for v in victimas}   # id -> Victima
-        self.t_max = max(v.ticks for v in victimas)
+        self.victimas = {}                      # identificador -> Victima
+        for victima in victimas:
+            self.victimas[victima.identificador] = victima
 
     def estado_inicial(self):
-        f, c = self.mapa.inicio
-        return (f, c, frozenset(self.victimas), frozenset(), 0)
+        fila, columna = self.mapa.inicio
+        todas_vivas = frozenset(self.victimas)  # los ids de todas las víctimas
+        return Estado(fila, columna, todas_vivas, frozenset(), 0)
 
     def acciones(self, estado):
-        """Lista de (accion, estado_sucesor). No incluye movimientos a paredes."""
-        fila, col, _, _, _ = estado
+        """Lista de (nombre de la acción, estado sucesor). No incluye paredes."""
         sucesores = []
-        for nombre, (df, dc) in DIRECCIONES.items():
-            if self.mapa.es_transitable(fila + df, col + dc):
+        for nombre, (cambio_fila, cambio_columna) in DIRECCIONES.items():
+            nueva_fila = estado.fila + cambio_fila
+            nueva_columna = estado.columna + cambio_columna
+            if self.mapa.es_transitable(nueva_fila, nueva_columna):
                 sucesores.append((nombre, self.resultado(estado, nombre)))
         return sucesores
 
     def resultado(self, estado, accion):
-        """Aplica una acción: mueve, avanza el tick, rescata y mata víctimas."""
-        fila, col, vivas, rescatadas, tick = estado
-        df, dc = DIRECCIONES[accion]
-        nueva_fila, nueva_col = fila + df, col + dc
-        nuevo_tick = tick + 1
+        """Aplica una acción: mueve al agente, suma un tick, rescata y mata víctimas."""
+        cambio_fila, cambio_columna = DIRECCIONES[accion]
+        nueva_fila = estado.fila + cambio_fila
+        nueva_columna = estado.columna + cambio_columna
+        nuevo_tick = estado.tick + 1
 
-        nuevas_vivas = set(vivas)
-        nuevas_rescatadas = set(rescatadas)
+        nuevas_vivas = set(estado.vivas)
+        nuevas_rescatadas = set(estado.rescatadas)
 
         # 1) Rescate: el agente pisa la celda de una víctima viva a tiempo
-        for vid in vivas:
-            v = self.victimas[vid]
-            if (v.fila, v.columna) == (nueva_fila, nueva_col) and nuevo_tick <= v.ticks:
-                nuevas_vivas.discard(vid)
-                nuevas_rescatadas.add(vid)
+        for identificador in estado.vivas:
+            victima = self.victimas[identificador]
+            esta_en_la_celda = (victima.fila == nueva_fila and victima.columna == nueva_columna)
+            if esta_en_la_celda and nuevo_tick <= victima.ticks_supervivencia:
+                nuevas_vivas.remove(identificador)
+                nuevas_rescatadas.add(identificador)
 
-        # 2) Muerte: las que siguen vivas y cuyo tiempo ya fue superado
-        for vid in list(nuevas_vivas):
-            if self.victimas[vid].ticks < nuevo_tick:
-                nuevas_vivas.discard(vid)
+        # 2) Muerte: las que siguen vivas y cuyo tiempo ya se superó
+        for identificador in list(nuevas_vivas):
+            if self.victimas[identificador].ticks_supervivencia < nuevo_tick:
+                nuevas_vivas.remove(identificador)
 
-        return (nueva_fila, nueva_col,
-                frozenset(nuevas_vivas), frozenset(nuevas_rescatadas), nuevo_tick)
+        return Estado(nueva_fila, nueva_columna,
+                      frozenset(nuevas_vivas), frozenset(nuevas_rescatadas), nuevo_tick)
 
     def es_objetivo(self, estado):
-        """Meta: ninguna víctima viva es alcanzable (cota optimista con Manhattan)."""
-        fila, col, vivas, _, tick = estado
-        for vid in vivas:
-            v = self.victimas[vid]
-            distancia = abs(fila - v.fila) + abs(col - v.columna)
-            if distancia <= v.ticks - tick:
+        """Meta: ninguna víctima viva se puede alcanzar (se compara con la distancia Manhattan)."""
+        for identificador in estado.vivas:
+            victima = self.victimas[identificador]
+            distancia = abs(estado.fila - victima.fila) + abs(estado.columna - victima.columna)
+            ticks_restantes = victima.ticks_supervivencia - estado.tick
+            if distancia <= ticks_restantes:
                 return False
         return True
 
     def costo_paso(self, estado, sucesor):
-        """Costo = número de víctimas que mueren en esta transición."""
-        _, _, vivas, rescatadas, _ = estado
-        _, _, nuevas_vivas, nuevas_rescatadas, _ = sucesor
-        rescatadas_nuevas = len(nuevas_rescatadas) - len(rescatadas)
-        return len(vivas) - len(nuevas_vivas) - rescatadas_nuevas
+        """Costo de un paso = víctimas que mueren en esa transición."""
+        victimas_que_salieron = len(estado.vivas) - len(sucesor.vivas)
+        victimas_rescatadas_ahora = len(sucesor.rescatadas) - len(estado.rescatadas)
+        return victimas_que_salieron - victimas_rescatadas_ahora

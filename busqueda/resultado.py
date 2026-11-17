@@ -8,10 +8,10 @@ class ResultadoBusqueda:
         self.tiempo = tiempo                        # segundos
 
         if nodo_meta is not None:
-            self.camino = nodo_meta.camino()                # lista de estados, de inicio a meta
-            self.acciones = nodo_meta.acciones()            # lista de 'N', 'S', 'E', 'O'
-            self.rescatadas = len(nodo_meta.estado[3])      # estado[3] = frozenset de rescatadas
-            self.ticks = nodo_meta.estado[4]                # estado[4] = tick final
+            self.camino = nodo_meta.camino()                    # estados de inicio a meta
+            self.acciones = nodo_meta.acciones()                # 'N', 'S', 'E', 'O'
+            self.rescatadas = len(nodo_meta.estado.rescatadas)
+            self.ticks = nodo_meta.estado.tick
         else:
             # La búsqueda no encontró ningún estado objetivo
             self.camino = []

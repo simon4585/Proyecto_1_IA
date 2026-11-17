@@ -5,88 +5,98 @@ CARACTERES_VALIDOS = set("#.SV0123456789")
 
 
 class ErrorDeArchivo(Exception):
-    """Archivo de entrada ilegible o con formato inválido (mensaje apto para mostrar)."""
+    """Archivo ilegible o con formato inválido. El mensaje se muestra al usuario."""
 
 
-def _leer_lineas(ruta):
-    """Devuelve las líneas del archivo sin saltos de línea."""
+def leer_lineas(ruta):
+    """Devuelve las líneas del archivo sin los saltos de línea."""
     try:
         with open(ruta, encoding="utf-8-sig") as archivo:
             return archivo.read().splitlines()
     except OSError as error:
-        raise ErrorDeArchivo(f"No se pudo abrir '{ruta}': {error.strerror}")
+        raise ErrorDeArchivo("No se pudo abrir '" + ruta + "': " + str(error.strerror))
     except UnicodeDecodeError:
-        raise ErrorDeArchivo(f"'{ruta}' no es un archivo de texto UTF-8 válido")
+        raise ErrorDeArchivo("'" + ruta + "' no es un archivo de texto UTF-8 válido")
 
 
 def cargar_mapa(ruta):
-    """Lee mapa.txt y devuelve un Mapa. Lanza ErrorDeArchivo si el formato es inválido."""
-    lineas = [l.rstrip() for l in _leer_lineas(ruta) if l.strip()]
-    if not lineas:
+    """Lee mapa.txt, valida su formato y devuelve un Mapa."""
+    lineas = []
+    for linea in leer_lineas(ruta):
+        if linea.strip() != "":
+            lineas.append(linea.rstrip())
+
+    if len(lineas) == 0:
         raise ErrorDeArchivo("El archivo del mapa está vacío")
 
     ancho = len(lineas[0])
-    posiciones_s = []
-    for f, linea in enumerate(lineas):
-        if len(linea) != ancho:
-            raise ErrorDeArchivo(
-                f"Mapa: la fila {f + 1} mide {len(linea)} y la primera mide {ancho}")
-        for c, caracter in enumerate(linea):
+    cantidad_de_inicios = 0
+    for fila in range(len(lineas)):
+        if len(lineas[fila]) != ancho:
+            raise ErrorDeArchivo("Mapa: la fila " + str(fila + 1) + " mide "
+                                 + str(len(lineas[fila])) + " y la primera mide " + str(ancho))
+        for columna in range(ancho):
+            caracter = lineas[fila][columna]
             if caracter not in CARACTERES_VALIDOS:
-                raise ErrorDeArchivo(
-                    f"Mapa: carácter no válido '{caracter}' en fila {f + 1}, columna {c + 1}")
+                raise ErrorDeArchivo("Mapa: carácter no válido '" + caracter + "' en la fila "
+                                     + str(fila + 1) + ", columna " + str(columna + 1))
             if caracter == "S":
-                posiciones_s.append((f, c))
+                cantidad_de_inicios += 1
 
-    if len(posiciones_s) == 0:
+    if cantidad_de_inicios == 0:
         raise ErrorDeArchivo("Mapa: no hay posición inicial 'S'")
-    if len(posiciones_s) > 1:
+    if cantidad_de_inicios > 1:
         raise ErrorDeArchivo("Mapa: hay más de una 'S'")
 
-    return Mapa.desde_lineas(lineas)
+    return Mapa(lineas)
 
 
 def cargar_victimas(ruta, mapa):
-    """Lee victimas.txt. Devuelve (lista_de_Victima, lista_de_advertencias)."""
+    """Lee victimas.txt. Devuelve (lista de Victima, lista de advertencias)."""
     victimas = []
     advertencias = []
-    ids_vistos = set()
-    primera_linea = True
+    identificadores_vistos = set()
 
-    for numero, linea in enumerate(_leer_lineas(ruta), start=1):
-        if not linea.strip():
+    lineas = leer_lineas(ruta)
+    for numero in range(1, len(lineas) + 1):
+        linea = lineas[numero - 1]
+        if linea.strip() == "":
             continue
-        partes = [p.strip() for p in linea.split(",")]
+
+        partes = [parte.strip() for parte in linea.split(",")]
         if len(partes) != 4:
-            raise ErrorDeArchivo(
-                f"Víctimas, línea {numero}: se esperaban 4 campos y hay {len(partes)}")
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero)
+                                 + ": se esperaban 4 campos y hay " + str(len(partes)))
 
         try:
-            fila, columna, ticks = int(partes[1]), int(partes[2]), int(partes[3])
+            fila = int(partes[1])
+            columna = int(partes[2])
+            ticks_supervivencia = int(partes[3])
         except ValueError:
-            if primera_linea:           # cabecera: id,fila,columna,ticks_supervivencia
-                primera_linea = False
-                continue
-            raise ErrorDeArchivo(f"Víctimas, línea {numero}: fila, columna y ticks deben ser enteros")
-        primera_linea = False
+            if numero == 1:
+                continue    # es la cabecera: id,fila,columna,ticks_supervivencia
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero)
+                                 + ": fila, columna y ticks deben ser enteros")
 
         identificador = partes[0]
-        if not identificador:
-            raise ErrorDeArchivo(f"Víctimas, línea {numero}: falta el id")
-        if identificador in ids_vistos:
-            raise ErrorDeArchivo(f"Víctimas, línea {numero}: el id '{identificador}' está repetido")
-        if ticks <= 0:
-            raise ErrorDeArchivo(f"Víctimas, línea {numero}: los ticks deben ser mayores que 0")
-        if not (0 <= fila < mapa.filas and 0 <= columna < mapa.columnas):
-            raise ErrorDeArchivo(
-                f"Víctimas, línea {numero}: {identificador} está fuera del mapa ({fila},{columna})")
+        if identificador == "":
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero) + ": falta el id")
+        if identificador in identificadores_vistos:
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero) + ": el id '"
+                                 + identificador + "' está repetido")
+        if ticks_supervivencia <= 0:
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero)
+                                 + ": los ticks deben ser mayores que 0")
+        if fila < 0 or fila >= mapa.filas or columna < 0 or columna >= mapa.columnas:
+            raise ErrorDeArchivo("Víctimas, línea " + str(numero) + ": " + identificador
+                                 + " está fuera del mapa (" + str(fila) + "," + str(columna) + ")")
         if not mapa.es_transitable(fila, columna):
-            advertencias.append(
-                f"{identificador} está en ({fila},{columna}), que es pared: no se puede rescatar")
+            advertencias.append(identificador + " está en (" + str(fila) + "," + str(columna)
+                                + "), que es pared: no se puede rescatar")
 
-        ids_vistos.add(identificador)
-        victimas.append(Victima(identificador, fila, columna, ticks))
+        identificadores_vistos.add(identificador)
+        victimas.append(Victima(identificador, fila, columna, ticks_supervivencia))
 
-    if not victimas:
+    if len(victimas) == 0:
         raise ErrorDeArchivo("El archivo de víctimas no contiene ninguna víctima")
     return victimas, advertencias
