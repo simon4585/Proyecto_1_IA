@@ -11,35 +11,33 @@ from busqueda.astar import astar
 # Algoritmos disponibles en el menú desplegable
 ALGORITMOS = {"BFS": bfs, "UCS": ucs, "IDDFS": iddfs, "A*": astar}
 
-# Tipo de letra de la interfaz (si no existe en el computador, Tkinter usa otra)
 FUENTE = "Segoe UI"
 
-# Tamaño de cada celda del mapa en píxeles
 TAMANO_CELDA = 60
 
-# Colores de la interfaz: todo blanco; solo el título de arriba y el botón principal son azules
-COLOR_FONDO = "#FFFFFF"                      # fondo de la pantalla
-COLOR_TARJETA = "#FFFFFF"                    # fondo de cada tarjeta
-COLOR_TITULO_TARJETA = "#FFFFFF"             # franja con el título de cada tarjeta
-COLOR_BORDE = "#D9DDE3"                      # borde gris claro que separa las tarjetas
-COLOR_TEXTO = "#1F2937"                      # letras (gris muy oscuro)
+# Colores de la interfaz
+COLOR_FONDO = "#FFFFFF"                     
+COLOR_TARJETA = "#FFFFFF"                    
+COLOR_TITULO_TARJETA = "#FFFFFF"             
+COLOR_BORDE = "#D9DDE3"                      
+COLOR_TEXTO = "#1F2937"                      
 COLOR_TEXTO_CLARO = "#FFFFFF"
-COLOR_ENCABEZADO = "#1B3A6E"                 # barra superior (azul)
-COLOR_BOTON_PRINCIPAL = "#0F3A82"            # "Iniciar Rescate" (azul)
+COLOR_ENCABEZADO = "#3780FF"                
+COLOR_BOTON_PRINCIPAL = "#3780FF"            
 COLOR_BOTON_PRINCIPAL_PRESIONADO = "#0A2B63"
-COLOR_BOTON_SECUNDARIO = "#FFFFFF"           # botones "Examinar" (blancos con borde)
+COLOR_BOTON_SECUNDARIO = "#FFFFFF"           
 COLOR_BOTON_SECUNDARIO_PRESIONADO = "#F3F4F6"
 COLOR_LECTURA_OK = "#1E7B34"
 COLOR_LECTURA_ERROR = "#C62828"
 
 # Colores del mapa
-COLOR_PARED = "#2B3445"
+COLOR_PARED = "#000000"
 COLOR_LIBRE = "#FFFFFF"
 COLOR_LINEA_CELDA = "#E5E7EB"
-COLOR_AGENTE = "#111827"
-COLOR_VICTIMA_VIVA = "#F5B94A"
-COLOR_VICTIMA_RESCATADA = "#8FD35F"
-COLOR_VICTIMA_MUERTA = "#F07C73"
+COLOR_AGENTE = "#2F6FED"
+COLOR_VICTIMA_VIVA = "#EEA827"
+COLOR_VICTIMA_RESCATADA = "#68BB2D"
+COLOR_VICTIMA_MUERTA = "#E0271A"
 
 
 class VentanaPrincipal:
@@ -63,25 +61,21 @@ class VentanaPrincipal:
         self.indice_tick = 0          # posición actual dentro de camino_animado
         self.identificador_animacion = None
 
-        # La aplicación abre directamente en la pantalla principal
         self.construir_pantalla_principal()
         self.pantalla_principal.pack(fill="both", expand=True)
 
     def maximizar_ventana(self):
         """Abre la ventana ocupando toda la pantalla (con sus botones de ventana)."""
         try:
-            self.ventana.state("zoomed")                  # Windows y Mac
+            self.ventana.state("zoomed")                  
         except tk.TclError:
             try:
-                self.ventana.attributes("-zoomed", True)  # Linux
+                self.ventana.attributes("-zoomed", True)  
             except tk.TclError:
-                pass    # si el sistema no permite maximizar, queda en tamaño normal
+                pass    
 
-    # ------------------------------------------------------------------
-    # Botones y tarjetas (se reutilizan en varias partes)
-    # ------------------------------------------------------------------
+    # Botones y tarjetas
     def crear_boton_principal(self, padre, texto, comando, tamano_letra):
-        """Botón azul con letra blanca (acción importante)."""
         return tk.Button(padre, text=texto, command=comando,
                          bg=COLOR_BOTON_PRINCIPAL, fg=COLOR_TEXTO_CLARO,
                          activebackground=COLOR_BOTON_PRINCIPAL_PRESIONADO,
@@ -90,7 +84,6 @@ class VentanaPrincipal:
                          cursor="hand2")
 
     def crear_boton_secundario(self, padre, texto, comando):
-        """Botón blanco con borde gris y letra oscura (botones 'Examinar')."""
         return tk.Button(padre, text=texto, command=comando,
                          bg=COLOR_BOTON_SECUNDARIO, fg=COLOR_TEXTO,
                          activebackground=COLOR_BOTON_SECUNDARIO_PRESIONADO,
@@ -100,10 +93,6 @@ class VentanaPrincipal:
                          cursor="hand2")
 
     def crear_tarjeta(self, padre, titulo, expandir=False):
-        """Crea una tarjeta: borde, franja con el título y un cuerpo vacío.
-
-        Devuelve (etiqueta del título, cuerpo). Los widgets se agregan al cuerpo.
-        """
         tarjeta = tk.Frame(padre, bg=COLOR_TARJETA,
                            highlightthickness=1, highlightbackground=COLOR_BORDE)
         if expandir:
@@ -120,11 +109,8 @@ class VentanaPrincipal:
         cuerpo.pack(fill="both", expand=expandir, padx=10, pady=10)
         return etiqueta_titulo, cuerpo
 
-    # ------------------------------------------------------------------
     # Pantalla principal
-    # ------------------------------------------------------------------
     def construir_pantalla_principal(self):
-        """Barra superior y, debajo, dos columnas: controles (izquierda) y mapa (derecha)."""
         self.pantalla_principal = tk.Frame(self.ventana, bg=COLOR_FONDO)
 
         encabezado = tk.Label(self.pantalla_principal,
@@ -191,14 +177,13 @@ class VentanaPrincipal:
         self.caja_pausa.grid(row=1, column=1, padx=5, pady=5, sticky="e")
         cuerpo.columnconfigure(0, weight=1)
 
-        # El botón va fuera de la tarjeta, justo debajo
-        boton_iniciar = self.crear_boton_principal(columna, "▶  Iniciar Rescate",
+        boton_iniciar = self.crear_boton_principal(columna, "Iniciar Rescate",
                                                    self.iniciar_rescate, 14)
         boton_iniciar.config(pady=10)
         boton_iniciar.pack(fill="x", pady=6)
 
     def construir_tarjeta_resultados(self, columna):
-        """Cuadro de texto (con barra de desplazamiento) para las estadísticas finales."""
+        """Cuadro de texto para las estadísticas finales."""
         titulo, cuerpo = self.crear_tarjeta(columna, "Resultados", expandir=True)
 
         barra = tk.Scrollbar(cuerpo)
@@ -235,11 +220,8 @@ class VentanaPrincipal:
             tk.Label(leyenda, text=nombre, bg=COLOR_TARJETA, fg=COLOR_TEXTO,
                      font=(FUENTE, 10)).pack(side="left")
 
-    # ------------------------------------------------------------------
     # Carga de archivos
-    # ------------------------------------------------------------------
     def seleccionar_mapa(self):
-        """Abre el explorador, lee el mapa y muestra si la lectura fue correcta."""
         ruta = filedialog.askopenfilename(title="Seleccione mapa.txt",
                                           filetypes=[("Texto", "*.txt")])
         if ruta == "":
@@ -256,12 +238,10 @@ class VentanaPrincipal:
 
         self.dibujar_mapa_vacio()
 
-        # Si ya había un archivo de víctimas, se vuelve a leer con el mapa nuevo
         if self.ruta_victimas != "":
             self.leer_victimas()
 
     def seleccionar_victimas(self):
-        """Abre el explorador y lee las víctimas (el mapa debe estar cargado antes)."""
         if self.mapa is None:
             messagebox.showwarning("Falta el mapa", "Primero cargue un mapa válido.")
             return
@@ -287,13 +267,10 @@ class VentanaPrincipal:
                                           fg=COLOR_LECTURA_ERROR)
             return
 
-        # Vista previa: el estado inicial (agente en 'S' y todas las víctimas vivas)
         problema = ProblemaRescate(self.mapa, self.victimas)
         self.dibujar_estado(problema.estado_inicial())
 
-    # ------------------------------------------------------------------
-    # Ejecución de los algoritmos y animación
-    # ------------------------------------------------------------------
+    # Ejecución de los algoritmos
     def leer_pausa(self):
         """Lee la pausa entre ticks. Si el valor no es un número, usa 500 ms."""
         try:
@@ -305,7 +282,6 @@ class VentanaPrincipal:
         return pausa
 
     def iniciar_rescate(self):
-        """Ejecuta los 4 algoritmos y anima el que eligió el usuario."""
         if self.mapa is None or self.victimas is None:
             messagebox.showwarning("Faltan datos", "Cargue el mapa y las víctimas.")
             return
@@ -342,16 +318,14 @@ class VentanaPrincipal:
                                                           self.avanzar_tick)
 
     def detener_animacion(self):
-        """Cancela una animación que esté en curso."""
+        """Cancela una animacion que esté en curso."""
         if self.identificador_animacion is not None:
             self.ventana.after_cancel(self.identificador_animacion)
             self.identificador_animacion = None
 
-    # ------------------------------------------------------------------
     # Dibujo
-    # ------------------------------------------------------------------
     def dibujar_mapa_vacio(self):
-        """Dibuja solo las paredes y las celdas libres (sin agente ni víctimas)."""
+        """Dibuja solo las paredes y las celdas libres"""
         self.lienzo.config(width=self.mapa.columnas * TAMANO_CELDA,
                            height=self.mapa.filas * TAMANO_CELDA)
         self.lienzo.delete("all")
@@ -369,16 +343,11 @@ class VentanaPrincipal:
                                              fill=color, outline=COLOR_LINEA_CELDA)
 
     def dibujar_estado(self, estado, es_ultimo_estado=False):
-        """Dibuja el mapa, las víctimas y el agente según un estado.
-
-        En el último estado de la animación, las víctimas que siguen "vivas"
-        ya no son alcanzables, así que se dibujan como fallecidas.
-        """
+        """Dibuja el mapa, las víctimas y el agente según un estado"""
         fila_agente, columna_agente, vivas, rescatadas, tick = estado
         self.dibujar_mapa_vacio()
         self.etiqueta_tick.config(text="Mapa - Tick: " + str(tick))
 
-        # Primero los cuadros de las víctimas
         for victima in self.victimas:
             x_izquierda = victima.columna * TAMANO_CELDA
             y_arriba = victima.fila * TAMANO_CELDA
@@ -401,16 +370,13 @@ class VentanaPrincipal:
                                     text=texto, font=(FUENTE, 11, "bold"),
                                     fill=COLOR_TEXTO)
 
-        # El agente se dibuja como un círculo oscuro en la esquina de su celda
         x_agente = columna_agente * TAMANO_CELDA
         y_agente = fila_agente * TAMANO_CELDA
         self.lienzo.create_oval(x_agente + 2, y_agente + 2,
                                 x_agente + 20, y_agente + 20,
                                 fill=COLOR_AGENTE, outline=COLOR_TEXTO_CLARO, width=2)
 
-    # ------------------------------------------------------------------
     # Estadísticas
-    # ------------------------------------------------------------------
     def mostrar_estadisticas(self):
         """Escribe el resultado de la simulación y la tabla comparativa."""
         resultado = self.resultados[self.menu_algoritmo.get()]
