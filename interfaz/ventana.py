@@ -16,16 +16,16 @@ FUENTE = "Segoe UI"
 TAMANO_CELDA = 60
 
 # Colores de la interfaz
-COLOR_FONDO = "#FFFFFF"                     
-COLOR_TARJETA = "#FFFFFF"                    
-COLOR_TITULO_TARJETA = "#FFFFFF"             
-COLOR_BORDE = "#D9DDE3"                      
-COLOR_TEXTO = "#1F2937"                      
+COLOR_FONDO = "#FFFFFF"
+COLOR_TARJETA = "#FFFFFF"
+COLOR_TITULO_TARJETA = "#FFFFFF"
+COLOR_BORDE = "#D9DDE3"
+COLOR_TEXTO = "#1F2937"
 COLOR_TEXTO_CLARO = "#FFFFFF"
-COLOR_ENCABEZADO = "#3780FF"                
-COLOR_BOTON_PRINCIPAL = "#3780FF"            
+COLOR_ENCABEZADO = "#3780FF"
+COLOR_BOTON_PRINCIPAL = "#3780FF"
 COLOR_BOTON_PRINCIPAL_PRESIONADO = "#0A2B63"
-COLOR_BOTON_SECUNDARIO = "#FFFFFF"           
+COLOR_BOTON_SECUNDARIO = "#FFFFFF"
 COLOR_BOTON_SECUNDARIO_PRESIONADO = "#F3F4F6"
 COLOR_LECTURA_OK = "#1E7B34"
 COLOR_LECTURA_ERROR = "#C62828"
@@ -67,12 +67,12 @@ class VentanaPrincipal:
     def maximizar_ventana(self):
         """Abre la ventana ocupando toda la pantalla (con sus botones de ventana)."""
         try:
-            self.ventana.state("zoomed")                  
+            self.ventana.state("zoomed")
         except tk.TclError:
             try:
-                self.ventana.attributes("-zoomed", True)  
+                self.ventana.attributes("-zoomed", True)
             except tk.TclError:
-                pass    
+                pass
 
     # Botones y tarjetas
     def crear_boton_principal(self, padre, texto, comando, tamano_letra):
@@ -119,19 +119,59 @@ class VentanaPrincipal:
                               font=(FUENTE, 20, "bold"), pady=14)
         encabezado.pack(fill="x")
 
-        zona_central = tk.Frame(self.pantalla_principal, bg=COLOR_FONDO)
-        zona_central.pack(fill="both", expand=True, padx=15, pady=10)
+        # Zona desplazable: si la pantalla es pequeña, se baja con la barra o con
+        # la rueda del mouse. Así los resultados se pueden ver en cualquier computador.
+        contenedor = tk.Frame(self.pantalla_principal, bg=COLOR_FONDO)
+        contenedor.pack(fill="both", expand=True)
+
+        barra_vertical = tk.Scrollbar(contenedor, orient="vertical")
+        barra_vertical.pack(side="right", fill="y")
+
+        self.lienzo_pantalla = tk.Canvas(contenedor, bg=COLOR_FONDO,
+                                         highlightthickness=0, yscrollincrement=30,
+                                         yscrollcommand=barra_vertical.set)
+        self.lienzo_pantalla.pack(side="left", fill="both", expand=True)
+        barra_vertical.config(command=self.lienzo_pantalla.yview)
+
+        # Todo el contenido va dentro de este Frame, que se coloca dentro del Canvas
+        zona_central = tk.Frame(self.lienzo_pantalla, bg=COLOR_FONDO)
+        self.ventana_interna = self.lienzo_pantalla.create_window(
+            (0, 0), window=zona_central, anchor="nw")
+        self.lienzo_pantalla.bind("<Configure>", self.ajustar_ancho_zona_central)
+        zona_central.bind("<Configure>", self.actualizar_region_desplazable)
+        self.ventana.bind_all("<MouseWheel>", self.desplazar_con_rueda)
 
         columna_izquierda = tk.Frame(zona_central, bg=COLOR_FONDO)
-        columna_izquierda.pack(side="left", fill="y")
+        columna_izquierda.pack(side="left", fill="y", padx=(15, 0), pady=10)
         columna_derecha = tk.Frame(zona_central, bg=COLOR_FONDO)
-        columna_derecha.pack(side="left", fill="both", expand=True, padx=(15, 0))
+        columna_derecha.pack(side="left", fill="both", expand=True,
+                             padx=(15, 15), pady=10)
 
         self.construir_tarjeta_archivos(columna_izquierda)
         self.construir_tarjeta_configuracion(columna_izquierda)
         self.construir_tarjeta_resultados(columna_izquierda)
         self.construir_tarjeta_mapa(columna_derecha)
         self.construir_leyenda(columna_derecha)
+
+    def ajustar_ancho_zona_central(self, evento):
+        """Hace que el contenido ocupe todo el ancho de la ventana."""
+        self.lienzo_pantalla.itemconfigure(self.ventana_interna, width=evento.width)
+
+    def actualizar_region_desplazable(self, evento):
+        """Le dice al Canvas hasta dónde se puede desplazar (el tamaño del contenido)."""
+        self.lienzo_pantalla.configure(scrollregion=self.lienzo_pantalla.bbox("all"))
+
+    def desplazar_con_rueda(self, evento):
+        """Mueve la pantalla con la rueda del mouse.
+
+        Si el mouse está sobre el cuadro de resultados, la rueda desplaza ese cuadro.
+        """
+        if evento.widget is self.cuadro_estadisticas:
+            return
+        if evento.delta > 0:
+            self.lienzo_pantalla.yview_scroll(-1, "units")
+        else:
+            self.lienzo_pantalla.yview_scroll(1, "units")
 
     def construir_tarjeta_archivos(self, columna):
         """Botones 'Examinar' y estado de lectura de cada archivo."""
@@ -183,12 +223,12 @@ class VentanaPrincipal:
         boton_iniciar.pack(fill="x", pady=6)
 
     def construir_tarjeta_resultados(self, columna):
-        """Cuadro de texto para las estadísticas finales."""
+        """Cuadro de texto para las estadísticas finales (14 líneas, se ven completas)."""
         titulo, cuerpo = self.crear_tarjeta(columna, "Resultados", expandir=True)
 
         barra = tk.Scrollbar(cuerpo)
         barra.pack(side="right", fill="y")
-        self.cuadro_estadisticas = tk.Text(cuerpo, height=12, width=64,
+        self.cuadro_estadisticas = tk.Text(cuerpo, height=14, width=64,
                                            font=("Courier", 9), relief="flat",
                                            bg=COLOR_TEXTO_CLARO, fg=COLOR_TEXTO,
                                            highlightthickness=1,
@@ -288,6 +328,9 @@ class VentanaPrincipal:
 
         self.detener_animacion()
         self.cuadro_estadisticas.delete("1.0", tk.END)
+
+        # Se vuelve arriba para ver el mapa mientras se anima
+        self.lienzo_pantalla.yview_moveto(0.0)
 
         problema = ProblemaRescate(self.mapa, self.victimas)
         self.resultados = {}
@@ -405,3 +448,6 @@ class VentanaPrincipal:
 
         self.cuadro_estadisticas.delete("1.0", tk.END)
         self.cuadro_estadisticas.insert(tk.END, texto)
+
+        # Si la pantalla es pequeña, se baja hasta los resultados para que se vean
+        self.lienzo_pantalla.yview_moveto(1.0)
