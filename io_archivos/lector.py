@@ -13,19 +13,27 @@ def leer_lineas(ruta):
     try:
         with open(ruta, encoding="utf-8-sig") as archivo:
             return archivo.read().splitlines()
+
     except OSError as error:
         raise ErrorDeArchivo("No se pudo abrir '" + ruta + "': " + str(error.strerror))
+
     except UnicodeDecodeError:
         raise ErrorDeArchivo("'" + ruta + "' no es un archivo de texto UTF-8 válido")
 
 
 def cargar_mapa(ruta):
     """Lee mapa.txt, valida su formato y devuelve un Mapa."""
-    lineas = []
 
-    for linea in leer_lineas(ruta):
-        if linea.strip() != "":
-            lineas.append(linea.rstrip())
+    lineas = []
+    todas_las_lineas = leer_lineas(ruta)
+
+    for numero in range(1, len(todas_las_lineas) + 1):
+        linea = todas_las_lineas[numero - 1]
+
+        if linea.strip() == "":
+            continue
+
+        lineas.append(linea.rstrip())
 
     if len(lineas) == 0:
         raise ErrorDeArchivo("El archivo del mapa está vacío")
@@ -59,6 +67,7 @@ def cargar_mapa(ruta):
 
 def cargar_victimas(ruta, mapa):
     """Lee victimas.txt. Devuelve (lista de Victima, lista de advertencias)."""
+
     victimas = []
     advertencias = []
     identificadores_vistos = set()
